@@ -1,0 +1,24 @@
+% === Señal en el dominio del tiempo ===
+data_time = readtable('muestras.txt');
+t = data_time{:,1};       % Tiempo
+v = data_time{:,2};       % Voltaje
+
+figure;
+subplot(2,1,1);
+plot(t, v, 'b-', 'LineWidth', 1.5);
+xlabel('Tiempo [s]');
+ylabel('Voltaje [V]');
+title('Señal en el dominio del tiempo');
+grid on;
+
+% === Señal en el dominio de la frecuencia (FFT) ===
+data_fft = readtable('fft.txt');
+f = data_fft{:,1};        % Frecuencia
+Vf = data_fft{:,2};       % Magnitud FFT
+
+subplot(2,1,2);
+plot(f, Vf, 'r-', 'LineWidth', 1.5);
+xlabel('Frecuencia [Hz]');
+ylabel('Amplitud');
+title('Espectro en frecuencia (FFT)');
+grid on;

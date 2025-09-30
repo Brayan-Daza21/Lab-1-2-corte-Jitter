@@ -1,0 +1,37 @@
+% Listar todos los archivos txt en la carpeta actual
+archivos = dir('muestras*.txt');
+
+% Clasificación de archivos según el segundo valor (frecuencia señal)
+grupos = { '300', '900', '1800' };
+
+for g = 1:length(grupos)
+    figure(g);
+    
+    % Seleccionar archivos que correspondan al grupo
+    archivos_grupo = archivos(contains({archivos.name}, grupos{g}));
+    
+    % Extraer los valores de N_muestras del nombre
+    N_vals = zeros(1,length(archivos_grupo));
+    for k = 1:length(archivos_grupo)
+        nombre = archivos_grupo(k).name;
+        tokens = regexp(nombre,'muestras_\((\d+)-','tokens');
+        N_vals(k) = str2double(tokens{1}{1});
+    end
+    
+    % Ordenar archivos por N ascendente
+    [~, orden] = sort(N_vals);
+    archivos_grupo = archivos_grupo(orden);
+    
+    % Graficar en orden
+    for k = 1:length(archivos_grupo)
+        data = readtable(archivos_grupo(k).name);
+        datos = table2array(data);
+
+        subplot(length(archivos_grupo),1,k);
+        plot(datos(:,1), datos(:,2), 'LineWidth',1.2);
+        title(['Muestras: ' archivos_grupo(k).name], 'Interpreter','none');
+        xlabel('Tiempo (s)');
+        ylabel('Amplitud');
+        grid on;
+    end
+end

@@ -1,0 +1,38 @@
+% Listar todos los archivos txt en la carpeta actual
+archivos = dir('fft*.txt');
+
+% Clasificación de archivos según el segundo valor
+grupos = { '300', '900', '1800' };
+
+for g = 1:length(grupos)
+    figure(g);
+    
+    % Seleccionar archivos que correspondan al grupo
+    archivos_grupo = archivos(contains({archivos.name}, grupos{g}));
+    
+    % Extraer los valores de N_FFT (primer número dentro del nombre)
+    Nfft_vals = zeros(1,length(archivos_grupo));
+    for k = 1:length(archivos_grupo)
+        nombre = archivos_grupo(k).name;
+        % Buscar número entre paréntesis antes del '-'
+        tokens = regexp(nombre,'fft\((\d+)-','tokens');
+        Nfft_vals(k) = str2double(tokens{1}{1});
+    end
+    
+    % Ordenar archivos por NFFT ascendente
+    [~, orden] = sort(Nfft_vals);
+    archivos_grupo = archivos_grupo(orden);
+    
+    % Graficar en orden
+    for k = 1:length(archivos_grupo)
+        data = readtable(archivos_grupo(k).name);
+        datos = table2array(data);
+
+        subplot(length(archivos_grupo),1,k);
+        plot(datos(:,1), datos(:,2), 'LineWidth',1.2);
+        title(['FFT: ' archivos_grupo(k).name], 'Interpreter','none');
+        xlabel('Frecuencia (Hz)');
+        ylabel('Amplitud');
+        grid on;
+    end
+end
