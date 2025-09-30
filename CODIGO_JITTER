@@ -1,0 +1,66 @@
+from machine import ADC, Pin, Timer
+import utime, math
+import uarray as array
+
+# ==============================
+# CONFIGURACIÓN
+# ==============================
+adc = ADC(26)   # GP26 = ADC0
+fs = 2000       # Frecuencia de muestreo
+N = 1024        # Muestras
+
+buffer = array.array('H', [0]*N)
+timestamps = array.array('L', [0]*N)  # tiempos en us
+index = 0
+done = False
+Ts_ideal = 1e6/fs  # periodo ideal en microsegundos
+
+# ==============================
+# FUNCIÓN DE MUESTREO
+# ==============================
+def sample_cb(timer):
+    global index, done
+    if index < N:
+        buffer[index] = adc.read_u16()
+        timestamps[index] = utime.ticks_us()
+        index += 1
+    else:
+        done = True
+        timer.deinit()
+
+# ==============================
+# INICIO DE MUESTREO
+# ==============================
+tim = Timer()
+tim.init(freq=fs, mode=Timer.PERIODIC, callback=sample_cb)
+
+while not done:
+    pass
+
+print("✅ Muestreo terminado.")
+
+# ==============================
+# CÁLCULO DEL JITTER
+# ==============================
+intervals = []
+for i in range(1, N):
+    dt = utime.ticks_diff(timestamps[i], timestamps[i-1])
+    intervals.append(dt)
+
+# RMS Jitter
+mean_interval = sum(intervals)/len(intervals)
+jitter_rms = math.sqrt(sum((dt - Ts_ideal)**2 for dt in intervals)/len(intervals))
+
+print("Periodo ideal (us):", Ts_ideal)
+print("Periodo medio (us):", mean_interval)
+print("Jitter RMS (us):", jitter_rms)
+
+# Guardar reporte
+with open("reporte.txt", "w") as f:
+    f.write("Frecuencia de muestreo ideal: {} Hz\n".format(fs))
+    f.write("Periodo ideal: {:.2f} us\n".format(Ts_ideal))
+    f.write("Periodo medio: {:.2f} us\n".format(mean_interval))
+    f.write("Jitter RMS: {:.4f} us\n".format(jitter_rms))
+    f.write("Número de muestras: {}\n".format(N))
+
+print("✅ Reporte 'reporte.txt' guardado.")
