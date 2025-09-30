@@ -1,0 +1,80 @@
+from machine import ADC, Pin, Timer
+import utime, math
+import uarray as array
+
+# ==============================
+# CONFIGURACIÓN
+# ==============================
+adc = ADC(26)   # Pin ADC0 -> GP26 (cambia si usas otro pin)
+fs = 2000       # Frecuencia de muestreo (Hz)
+N = 1024        # Número de muestras (potencia de 2 recomendable)
+
+buffer = array.array('H', [0]*N)
+index = 0
+done = False
+
+# ==============================
+# FUNCIÓN DE MUESTREO
+# ==============================
+def sample_cb(timer):
+    global index, done
+    if index < N:
+        buffer[index] = adc.read_u16()
+        index += 1
+    else:
+        done = True
+        timer.deinit()
+
+# ==============================
+# INICIO DE MUESTREO
+# ==============================
+tim = Timer()
+tim.init(freq=fs, mode=Timer.PERIODIC, callback=sample_cb)
+
+while not done:
+    pass
+
+print("✅ Muestreo terminado.")
+
+# ==============================
+# GUARDAR MUESTRAS EN ARCHIVO
+# ==============================
+with open("muestras_P2.txt", "w") as f:
+    for n in range(N):
+        # Convertir a voltios (3.3 V referencia, 16 bits escala)
+        volt = buffer[n] * 3.3 / 65535
+        t = n / fs
+        f.write("{:.6f}\t{:.6f}\n".format(t, volt))
+
+print("✅ Archivo 'muestras_P2.txt' guardado.")
+
+# ==============================
+# FFT (Transformada Rápida de Fourier)
+# ==============================
+# Implementación simple de FFT en MicroPython
+def fft(samples):
+    N = len(samples)
+    if N <= 1:
+        return samples
+    even = fft(samples[0::2])
+    odd  = fft(samples[1::2])
+    T = [math.e**(-2j*math.pi*k/N) * odd[k] for k in range(N//2)]
+    return [even[k] + T[k] for k in range(N//2)] + \
+           [even[k] - T[k] for k in range(N//2)]
+
+# Normalizar muestras (restar media)
+mean_val = sum(buffer)/len(buffer)
+norm_samples = [(v-mean_val)*3.3/65535 for v in buffer]
+
+# Ejecutar FFT
+X = fft(norm_samples)
+mag = [abs(c)/(N/2) for c in X[0:N//2]]  # magnitud positiva
+freqs = [k*fs/N for k in range(N//2)]    # eje de frecuencias
+
+# Guardar FFT en archivo
+with open("fft_P2.txt", "w") as f:
+    for k in range(len(freqs)):
+        f.write("{:.2f}\t{:.6f}\n".format(freqs[k], mag[k]))
+
+print("✅ Archivo 'fft_P2.txt' guardado.")
+
